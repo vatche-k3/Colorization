@@ -99,15 +99,39 @@ class Colorizer():
                 data[i][j-half] = Colorizer.getSurroundingGrid(i, j, image)
                 #print(data[i][j-half])
         return 0
-        
     
-    
-        
+    # Function creates a new image out of the five dominant colors
+    def create_representative_image(self, colors):
+        image = Image.open("images.jpeg")
+        image_rgb = image.convert("RGB")
+        width, height = image.size
+        data = np.zeros((height, width, 3), dtype=np.uint8)
 
+        # Take each rgb value for each pixel and grabs the closest representative color creating a new image and returning
+        for i in range(width):
+            for j in range(height):
+                rgb_pixel_value = image_rgb.getpixel((i,j))
+                data[j][i] = self.closestColor(colors, rgb_pixel_value)        
+        test_image = Image.fromarray(data)
+        test_image.save('representativeImg.png')
+        return test_image
+    
+    # Grabs the closest representative color to current color and returns
+    def closestColor(self,colors,color):
+        colors = np.array(colors)
+        color = np.array(color)
+        distances = np.sqrt(np.sum((colors-color)**2,axis=1))
+        index_of_smallest = np.where(distances==np.amin(distances))
+        smallest_distance = colors[index_of_smallest]
+        temp = smallest_distance[0]
+        return temp
+        
 if __name__ == '__main__':
     imageColorizer = Colorizer()
     grayscale_image = imageColorizer.create_grayscale_image()
-    #grayscale_image.show()
+    # grayscale_image.show()
     domColors = imageColorizer.getDominantColors()
     print(domColors)
+    testImage = imageColorizer.create_representative_image(domColors)
+    testImage.show()
     sixPatches = imageColorizer.getSixPatches()
