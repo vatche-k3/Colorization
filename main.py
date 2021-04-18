@@ -59,7 +59,50 @@ class Colorizer():
         # Convert colors to int and return
         return self.COLORS.astype(int)
 
+    def getSurroundingGrid(i, j, image):
+        # Initialize an array to get all surrounding pixels of given coordinates i, j
+        array = np.zeros((3, 3), dtype=list)
+        image_rgb = image.convert("RGB")
+        # All possible surroinding pixels
+        coordinates = [(j-1,i-1),(j,i-1),(j+1,i-1),(j-1,i),(j,i),(j+1,i),(j-1,i+1),(j,i+1),(j+1,i+1)]
+        c = 0
+        for x in range(3):
+            for y in range(3):
+                    
+                    # Set pixel as black if it does not have 9 surrounding pixels, i.e. a border
+                    if(coordinates[c][1] < 0 or coordinates[c][0] >= image.width or coordinates[c][1] >= image.height):
+                        # print("here1")
+                        array[x][y] = (256,256,256)
+                    else:
+                        # Get the rgb value of all the surrounding pixels
+                        # print("here2")
+                        # print(image.size)
+                        array[x][y] = image_rgb.getpixel(coordinates[c])
+                    c=c+1
 
+        return array
+    
+    def getSixPatches(self):
+        # Open image
+        image = Image.open("new.png")
+        # Get width and height
+        width, height = image.size
+        # Get width of second half of the image
+        half = (int)(width/2)
+        # Initialize array to contain the bw patches of the second half of the image
+        data = np.empty((height, width-half), dtype=list)
+        # print(len(data), len(data[0]))
+        for i in range(height):
+            for j in range(half, width):
+                # print(i,j)
+                # print(i,j-half)
+                data[i][j-half] = Colorizer.getSurroundingGrid(i, j, image)
+                #print(data[i][j-half])
+        return 0
+        
+    
+    
+        
 
 if __name__ == '__main__':
     imageColorizer = Colorizer()
@@ -67,3 +110,4 @@ if __name__ == '__main__':
     #grayscale_image.show()
     domColors = imageColorizer.getDominantColors()
     print(domColors)
+    sixPatches = imageColorizer.getSixPatches()
