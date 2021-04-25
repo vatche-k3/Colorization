@@ -172,6 +172,7 @@ class Colorizer():
         half = (int)(width/2)
 
         leftSide = {}
+        indexValue = 0
 
         # Get each patch on the left side of the image
         for i in range(half):
@@ -186,10 +187,10 @@ class Colorizer():
                         break   
                 leftSide[(i,j)] = (list(patch), indexValue) 
         
-        print(leftSide)
-        print("The end")
-        print("--- %s seconds ---" % (time.time() - start_time))
-        return 0
+        # print(leftSide)
+        # print("The end")
+        # print("--- %s seconds ---" % (time.time() - start_time))
+        return leftSide
     
     # Function creates a new image out of the five dominant colors
     def create_representative_image(self, colors):
@@ -207,6 +208,15 @@ class Colorizer():
         test_image.save('improvedRep.png')
         return test_image
     
+    # Performs the softmax function
+    def softmax(self):
+        logits = [2.0, 1.0, 0.1]
+        exps = [np.exp(i) for i in logits]
+        print(exps)
+        sum_of_exps = sum(exps)
+        softmax = [j/sum_of_exps for j in exps]    
+        print(softmax) 
+
     # Grabs the closest representative color to current color and returns
     def closestColor(self,colors,color):
         colors = np.array(colors)
@@ -222,7 +232,10 @@ if __name__ == '__main__':
     grayscale_image = imageColorizer.create_grayscale_image()
     # grayscale_image.show()
     domColors = imageColorizer.getDominantColors()
-    print(domColors)
+    # print(domColors)
     testImage = imageColorizer.create_representative_image(domColors)
     # testImage.show()
-    inputData = imageColorizer.getVectorX(domColors)
+    # inputData = imageColorizer.getVectorX(domColors)
+    # print("input:")
+    # print(inputData)
+    imageColorizer.softmax()
