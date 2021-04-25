@@ -202,7 +202,7 @@ class Colorizer():
             # print("This is the topSix: ", topSix, "and this is the value: " , i)
             finalImageData = self.predictImageColor(topSix, image_rgb, domColors, finalImageData, i)
             finalImage = Image.fromarray(finalImageData)
-            finalImage.save('final2.png')
+            # finalImage.save('final2.png')
             
 
             

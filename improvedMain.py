@@ -91,29 +91,29 @@ class Colorizer():
 
     def getSurroundingGrid(self, i, j, image, check):
         # Initialize an array to get all surrounding pixels of given coordinates i, j
-        array = np.zeros((3, 3), dtype=list)
+        array = np.zeros((9), dtype=list)
         image_rgb = image.convert("RGB")
         # All possible surroinding pixels
         # coordinates = [(j-1,i-1),(j,i-1),(j+1,i-1),(j-1,i),(j,i),(j+1,i),(j-1,i+1),(j,i+1),(j+1,i+1)]
         coordinates = [(i-1,j-1),(i,j-1),(i+1,j-1),(i-1,j),(i,j),(i+1,j),(i-1,j+1),(i,j+1),(i+1,j+1)]
         c = 0
-        for x in range(3):
-            for y in range(3):
-                    # Set pixel as black if it does not have 9 surrounding pixels, i.e. a border
-                    # print(coordinates[c])
-                    if(coordinates[c][1] < 0 or coordinates[c][0] >= image.width or coordinates[c][1] >= image.height):
-                        # print("here1")
-                        array[x][y] = [0,0,0]
-                    elif check == 0 and coordinates[c][0] < image.width/2:
-                        array[x][y] = [0,0,0]
-                    elif check == 1 and coordinates[c][0] < 0:
-                        array[x][y] = [0,0,0]
-                    else:
-                        # Get the rgb value of all the surrounding pixels
-                        # print("here2")
-                        # print(image.size)
-                        array[x][y] = list(image_rgb.getpixel(coordinates[c]))
-                    c=c+1
+        for x in range(9):
+            # Set pixel as black if it does not have 9 surrounding pixels, i.e. a border
+            # print(coordinates[c])
+            if(coordinates[c][1] < 0 or coordinates[c][0] >= image.width or coordinates[c][1] >= image.height):
+                # print("here1")
+                array[x] = 0
+            elif check == 0 and coordinates[c][0] < image.width/2:
+                array[x] = 0
+            elif check == 1 and coordinates[c][0] < 0:
+                array[x] = 0
+            else:
+                # Get the rgb value of all the surrounding pixels
+                # print("here2")
+                # print(image.size)
+                temp = image_rgb.getpixel(coordinates[c])
+                array[x] = temp[0]
+            c=c+1
 
         return array
 
@@ -155,63 +155,38 @@ class Colorizer():
         
 
         
-        print(pixelColors)
-        print(domColors[maxIndex], (coor[1],coor[0]))
+        # print(pixelColors)
+        # print(domColors[maxIndex], (coor[1],coor[0]))
         
         return finalImageData
     
-    def getSixPatches(self, domColors):
+    def getVectorX(self, domColors):
+        imageGray = Image.open("improvedGrayScale.png")
+        image_rgb_gray = imageGray.convert("RGB")
 
-        # Open image
-        image = Image.open("improvedGrayScale.png")
-        # Get width and height
-        width, height = image.size
+        imageRep = Image.open("representativeImg.png")
+        image_rgb_rep = imageRep.convert("RGB")
+
+        width, height = imageGray.size
         # Get width of second half of the image
         half = (int)(width/2)
-        # Initialize array to contain the bw patches of the second half of the image
-        # data = np.empty((height, width-half), dtype=list)
-        # print(len(data), len(data[0]))
 
-        # Initialize right side of image dictionary
-        rightSide = {}
+        leftSide = {}
 
-        for i in range(half, width):
+        # Get each patch on the left side of the image
+        for i in range(half):
             for j in range(height):
-                # print(i,j)
-                # print(i,j-half)
-                
-                rightSide[(i,j)] = self.getSurroundingGrid(i, j, image, 0)
-                
-                #print(data[i][j-half])
-        # print(rightSide)
-        image2 = Image.open("representativeImg.png")
-        image_rgb = image2.convert("RGB")
-        # Get each bw on the left side of the image
-        # finalImageData = np.zeros((height, width, 3), dtype=np.uint8)
-        finalImageData = np.array(image2)
-        for i in rightSide:
-            # Initialize empty array for top six patches closest to the right side patch i
-            topSix = []
-            
-            for j in range(half):
-                for k in range(height):
-                    temp = self.getSurroundingGrid(j, k, image, 1)
-                    topSix = self.checkSimilarity(temp, rightSide[i], topSix, j, k)
-                    # print("This is topSix: ", topSix)
-                    #return 0
-            # print("This is the topSix: ", topSix, "and this is the value: " , i)
-            finalImageData = self.predictImageColor(topSix, image_rgb, domColors, finalImageData, i)
-            finalImage = Image.fromarray(finalImageData)
-            finalImage.save('improvedFinal.png')
-            
-
-            
-            # topSix.sort()
-            # npTopSix = np.array(topSix, dtype=object)
-            # print("Count: ", i)
-            # return 0
-        finalImage.save('improvedFinal.png')
-        finalImage.show()
+                patch = self.getSurroundingGrid(i, j, imageGray, 1)
+                colorValue = image_rgb_rep.getpixel((i,j))
+                for k in range(len(domColors)):
+                    # print(domColors[j])
+                    if (np.array(domColors[k]) == np.array(colorValue)).all():
+                        # print("They are equal")
+                        indexValue = k
+                        break   
+                leftSide[(i,j)] = (list(patch), indexValue) 
+        
+        print(leftSide)
         print("The end")
         print("--- %s seconds ---" % (time.time() - start_time))
         return 0
@@ -250,4 +225,4 @@ if __name__ == '__main__':
     print(domColors)
     testImage = imageColorizer.create_representative_image(domColors)
     # testImage.show()
-    sixPatches = imageColorizer.getSixPatches(domColors)
+    inputData = imageColorizer.getVectorX(domColors)
