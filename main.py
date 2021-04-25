@@ -2,6 +2,9 @@ from PIL import Image
 import numpy as np
 import cv2
 from sklearn.cluster import KMeans
+from numpy.linalg import norm
+import time
+start_time = time.time()
 
 class Colorizer():
     CLUSTERS = None    
@@ -11,7 +14,7 @@ class Colorizer():
     # Converts original image into grayscale image
     def create_grayscale_image(self):
         # Open image
-        image = Image.open("images.jpeg")
+        image = Image.open("images2.jpeg")
 
         # Convert to rgb image
         image_rgb = image.convert("RGB")
@@ -41,7 +44,7 @@ class Colorizer():
     # Gets the five most representative colors of the image using k means clustering
     def getDominantColors(self):
          # Get the image
-        img = cv2.imread("images.jpeg")
+        img = cv2.imread("images2.jpeg")
         
         # Convert to rgb image
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -58,31 +61,107 @@ class Colorizer():
         
         # Convert colors to int and return
         return self.COLORS.astype(int)
+    
+    def checkSimilarity(self, leftSidePatch, rightSidePatch, topSix, j, k):
+        # print(leftSidePatch)
+        # print(rightSidePatch)
+        n = 0.0
+        # Euclidian distance of left and right patches
+        for x, y in zip(rightSidePatch, leftSidePatch):
+            for x2, y2 in zip(x, y):
+                # print(x2, y2)
+                n += norm(np.array(x2) - np.array(y2))
+                # print("This is n: ", n)
 
-    def getSurroundingGrid(i, j, image):
+        
+
+        # Add value to the array
+        
+        topSix.append((n, (j, k)))
+        # print("TopSix before add and delete: ", topSix)
+        if len(topSix) > 6:
+            topSix.sort(reverse = True)
+            del topSix[0]
+        # print("TopSix after add: ", topSix)
+        # print(topSix)
+            
+
+        return topSix
+
+
+    def getSurroundingGrid(self, i, j, image, check):
         # Initialize an array to get all surrounding pixels of given coordinates i, j
         array = np.zeros((3, 3), dtype=list)
         image_rgb = image.convert("RGB")
         # All possible surroinding pixels
-        coordinates = [(j-1,i-1),(j,i-1),(j+1,i-1),(j-1,i),(j,i),(j+1,i),(j-1,i+1),(j,i+1),(j+1,i+1)]
+        # coordinates = [(j-1,i-1),(j,i-1),(j+1,i-1),(j-1,i),(j,i),(j+1,i),(j-1,i+1),(j,i+1),(j+1,i+1)]
+        coordinates = [(i-1,j-1),(i,j-1),(i+1,j-1),(i-1,j),(i,j),(i+1,j),(i-1,j+1),(i,j+1),(i+1,j+1)]
         c = 0
         for x in range(3):
             for y in range(3):
-                    
                     # Set pixel as black if it does not have 9 surrounding pixels, i.e. a border
+                    # print(coordinates[c])
                     if(coordinates[c][1] < 0 or coordinates[c][0] >= image.width or coordinates[c][1] >= image.height):
                         # print("here1")
-                        array[x][y] = (256,256,256)
+                        array[x][y] = [0,0,0]
+                    elif check == 0 and coordinates[c][0] < image.width/2:
+                        array[x][y] = [0,0,0]
+                    elif check == 1 and coordinates[c][0] < 0:
+                        array[x][y] = [0,0,0]
                     else:
                         # Get the rgb value of all the surrounding pixels
                         # print("here2")
                         # print(image.size)
-                        array[x][y] = image_rgb.getpixel(coordinates[c])
+                        array[x][y] = list(image_rgb.getpixel(coordinates[c]))
                     c=c+1
 
         return array
+
+    def predictImageColor(self, topSix, image_rgb, domColors, finalImageData, coor):
+        height = 0
+        width = 0
+        pixelColors = [0,0,0,0,0]
+        for i in topSix:
+            width = i[1][0]
+            height = i[1][1]
+            rgb_pixel_value = image_rgb.getpixel((width,height))
+            # print("RGB: ", rgb_pixel_value, i)
+            for j in range(len(domColors)):
+                # print(domColors[j])
+                if (np.array(domColors[j]) == np.array(rgb_pixel_value)).all():
+                    # print("They are equal")
+                    pixelColors[j] += 1
+                    break
+        
+        max = 0
+        maxIndex = 0
+        for i in range(len(pixelColors)):
+            if pixelColors[i] > max:
+                max = pixelColors[i]
+                maxIndex = i
+
+        # Check for ties
+        count = 0
+        for i in range(len(pixelColors)):
+            if max == pixelColors[i]:
+                count += 1
+        
+        if count > 1:
+            rgb_pixel_value = image_rgb.getpixel((width,height))
+            finalImageData[coor[1]][coor[0]] = self.closestColor(domColors, rgb_pixel_value)    
+        else:
+            finalImageData[coor[1]][coor[0]] = domColors[maxIndex]
+            # finalImageData[coor[1]][coor[0]] = [0, 0, 0]
+        
+
+        
+        print(pixelColors)
+        print(domColors[maxIndex], (coor[1],coor[0]))
+        
+        return finalImageData
     
-    def getSixPatches(self):
+    def getSixPatches(self, domColors):
+
         # Open image
         image = Image.open("new.png")
         # Get width and height
@@ -90,19 +169,56 @@ class Colorizer():
         # Get width of second half of the image
         half = (int)(width/2)
         # Initialize array to contain the bw patches of the second half of the image
-        data = np.empty((height, width-half), dtype=list)
+        # data = np.empty((height, width-half), dtype=list)
         # print(len(data), len(data[0]))
-        for i in range(height):
-            for j in range(half, width):
+
+        # Initialize right side of image dictionary
+        rightSide = {}
+
+        for i in range(half, width):
+            for j in range(height):
                 # print(i,j)
                 # print(i,j-half)
-                data[i][j-half] = Colorizer.getSurroundingGrid(i, j, image)
+                
+                rightSide[(i,j)] = self.getSurroundingGrid(i, j, image, 0)
+                
                 #print(data[i][j-half])
+        # print(rightSide)
+        image2 = Image.open("representativeImg.png")
+        image_rgb = image2.convert("RGB")
+        # Get each bw on the left side of the image
+        # finalImageData = np.zeros((height, width, 3), dtype=np.uint8)
+        finalImageData = np.array(image2)
+        for i in rightSide:
+            # Initialize empty array for top six patches closest to the right side patch i
+            topSix = []
+            
+            for j in range(half):
+                for k in range(height):
+                    temp = self.getSurroundingGrid(j, k, image, 1)
+                    topSix = self.checkSimilarity(temp, rightSide[i], topSix, j, k)
+                    # print("This is topSix: ", topSix)
+                    #return 0
+            # print("This is the topSix: ", topSix, "and this is the value: " , i)
+            finalImageData = self.predictImageColor(topSix, image_rgb, domColors, finalImageData, i)
+            finalImage = Image.fromarray(finalImageData)
+            finalImage.save('final2.png')
+            
+
+            
+            # topSix.sort()
+            # npTopSix = np.array(topSix, dtype=object)
+            # print("Count: ", i)
+            # return 0
+        finalImage.save('final2.png')
+        finalImage.show()
+        print("The end")
+        print("--- %s seconds ---" % (time.time() - start_time))
         return 0
     
     # Function creates a new image out of the five dominant colors
     def create_representative_image(self, colors):
-        image = Image.open("images.jpeg")
+        image = Image.open("images2.jpeg")
         image_rgb = image.convert("RGB")
         width, height = image.size
         data = np.zeros((height, width, 3), dtype=np.uint8)
@@ -133,5 +249,5 @@ if __name__ == '__main__':
     domColors = imageColorizer.getDominantColors()
     print(domColors)
     testImage = imageColorizer.create_representative_image(domColors)
-    testImage.show()
-    sixPatches = imageColorizer.getSixPatches()
+    # testImage.show()
+    sixPatches = imageColorizer.getSixPatches(domColors)
