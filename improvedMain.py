@@ -160,6 +160,9 @@ class Colorizer():
         
         return finalImageData
     
+    def oneHotEncoding(self, index):
+        return np.array([int(i == index) for i in range(5)])
+    
     def getVectorX(self, domColors):
         imageGray = Image.open("improvedGrayScale.png")
         image_rgb_gray = imageGray.convert("RGB")
@@ -183,8 +186,9 @@ class Colorizer():
                     if (np.array(domColors[k]) == np.array(colorValue)).all():
                         # print("They are equal")
                         indexValue = k
+                        encoding = self.oneHotEncoding(indexValue)
                         break   
-                leftSide[(i,j)] = (list(patch), indexValue) 
+                leftSide[(i,j)] = (list(patch), list(encoding)) 
         
         print(leftSide)
         print("The end")
