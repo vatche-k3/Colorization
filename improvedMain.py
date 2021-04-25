@@ -167,7 +167,7 @@ class Colorizer():
         imageGray = Image.open("improvedGrayScale.png")
         image_rgb_gray = imageGray.convert("RGB")
 
-        imageRep = Image.open("representativeImg.png")
+        imageRep = Image.open("improvedRep.png")
         image_rgb_rep = imageRep.convert("RGB")
 
         width, height = imageGray.size
@@ -182,8 +182,10 @@ class Colorizer():
             for j in range(height):
                 patch = self.getSurroundingGrid(i, j, imageGray, 1)
                 colorValue = image_rgb_rep.getpixel((i,j))
+                # print(len(domColors))
                 for k in range(len(domColors)):
                     # print(domColors[j])
+                    # print(domColors[k], colorValue)
                     if (np.array(domColors[k]) == np.array(colorValue)).all():
                         # print("They are equal")
                         indexValue = k
@@ -191,7 +193,7 @@ class Colorizer():
                         break   
                 leftSide[(i,j)] = (list(patch), list(encoding)) 
         
-        print(leftSide)
+        # print(leftSide)
         # print("The end")
         # print("--- %s seconds ---" % (time.time() - start_time))
         return leftSide
@@ -216,10 +218,10 @@ class Colorizer():
     def softmax(self):
         logits = [2.0, 1.0, 0.1]
         exps = [np.exp(i) for i in logits]
-        print(exps)
+        # print(exps)
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]    
-        print(softmax) 
+        # print(softmax) 
 
     # Grabs the closest representative color to current color and returns
     def closestColor(self,colors,color):
@@ -236,7 +238,7 @@ if __name__ == '__main__':
     grayscale_image = imageColorizer.create_grayscale_image()
     # grayscale_image.show()
     domColors = imageColorizer.getDominantColors()
-    # print(domColors)
+    print(domColors)
     testImage = imageColorizer.create_representative_image(domColors)
     # testImage.show()
     inputData = imageColorizer.getVectorX(domColors)
