@@ -11,6 +11,7 @@ class Colorizer():
     CLUSTERS = None    
     def __init__(self, clusters = 5):
         self.CLUSTERS = clusters
+        self.weights = self.initializeWeights()
 
     # Converts original image into grayscale image
     def create_grayscale_image(self):
@@ -215,22 +216,38 @@ class Colorizer():
         test_image.save('improvedRep.png')
         return test_image
     
+    # Initializes the weights for each weight vector
+    def initializeWeights(self):
+        weights = np.zeros((5,9), dtype = np.float32)
+
+        # Initialize weights for each weight vector randomly close to 0
+        for i in range(5):
+            for j in range(9):
+                p = np.random.uniform(-0.5,0.5)
+                weights[i][j] = p
+        return weights;
     # Performs the softmax function
     def softmax(self, x):
-        print("here", x)
-        weights = np.zeros((5,9), dtype = np.float32)
-        logits = np.zeros((5,1), dtype = np.float32)
-        print(weights)
+        # print("here", x)
+        logits = np.zeros((1,5))
 
-        # take dot product of each weight vector compared to x and store in logit
-        check = np.dot(x, weights[0], out = None)
-        print("check", check)
-        #print("here", logits)
+        # take dot product of each weight vector compared to x and store in logit vector
+        logitIndex = 0
+        print("this is weights in softmax", self.weights)
+        for i in self.weights:
+            # print("weights i", i)
+            logits[0][logitIndex] = np.dot(x, i, out = None)
+            # print("check", logits[0][logitIndex])
+            logitIndex = logitIndex + 1
+        # print("here", logits)
         exps = [np.exp(i) for i in logits]
-        #print(exps)
-        sum_of_exps = sum(exps)
+        # print("exps", exps)
+        sum_of_exps = np.sum(exps)
+        # print("sum of exps", sum_of_exps)
         softmax = [j/sum_of_exps for j in exps]    
-        #print(softmax) 
+        # print("Softmax", softmax) 
+        maxProb = np.max(softmax)
+        # print("maxProb", maxProb)
 
     # Grabs the closest representative color to current color and returns
     def closestColor(self,colors,color):
