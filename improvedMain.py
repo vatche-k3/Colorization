@@ -4,6 +4,7 @@ import cv2
 from sklearn.cluster import KMeans
 from numpy.linalg import norm
 import time
+
 start_time = time.time()
 
 class Colorizer():
@@ -215,13 +216,21 @@ class Colorizer():
         return test_image
     
     # Performs the softmax function
-    def softmax(self):
-        logits = [2.0, 1.0, 0.1]
+    def softmax(self, x):
+        print("here", x)
+        weights = np.zeros((5,9), dtype = np.float32)
+        logits = np.zeros((5,1), dtype = np.float32)
+        print(weights)
+
+        # take dot product of each weight vector compared to x and store in logit
+        check = np.dot(x, weights[0], out = None)
+        print("check", check)
+        #print("here", logits)
         exps = [np.exp(i) for i in logits]
-        # print(exps)
+        #print(exps)
         sum_of_exps = sum(exps)
         softmax = [j/sum_of_exps for j in exps]    
-        # print(softmax) 
+        #print(softmax) 
 
     # Grabs the closest representative color to current color and returns
     def closestColor(self,colors,color):
@@ -232,6 +241,15 @@ class Colorizer():
         smallest_distance = colors[index_of_smallest]
         temp = smallest_distance[0]
         return temp
+
+    # trains the model
+    def training(self, inputData):
+        count = 0
+        for i in inputData.values():
+            if count == 1:
+                break
+            self.softmax(i[0])
+            count = count + 1
         
 if __name__ == '__main__':
     imageColorizer = Colorizer()
@@ -244,4 +262,4 @@ if __name__ == '__main__':
     inputData = imageColorizer.getVectorX(domColors)
     # print("input:")
     # print(inputData)
-    imageColorizer.softmax()
+    imageColorizer.training(inputData)
