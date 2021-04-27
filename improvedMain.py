@@ -12,6 +12,7 @@ class Colorizer():
     def __init__(self, clusters = 5):
         self.CLUSTERS = clusters
         self.weights = self.initializeWeights()
+        self.alpha = 0.1
 
     # Converts original image into grayscale image
     def create_grayscale_image(self):
@@ -228,7 +229,7 @@ class Colorizer():
         return weights;
     # Performs the softmax function
     def softmax(self, x):
-        # print("here", x)
+        print("here", x)
         logits = np.zeros((1,5))
 
         # take dot product of each weight vector compared to x and store in logit vector
@@ -239,15 +240,17 @@ class Colorizer():
             logits[0][logitIndex] = np.dot(x, i, out = None)
             # print("check", logits[0][logitIndex])
             logitIndex = logitIndex + 1
-        # print("here", logits)
+        print("here", logits)
+
         exps = [np.exp(i) for i in logits]
-        # print("exps", exps)
+        print("exps", exps)
         sum_of_exps = np.sum(exps)
-        # print("sum of exps", sum_of_exps)
+        print("sum of exps", sum_of_exps)
         softmax = [j/sum_of_exps for j in exps]    
         # print("Softmax", softmax) 
-        maxProb = np.max(softmax)
+        # maxProb = np.max(softmax)
         # print("maxProb", maxProb)
+        return softmax
 
     # Grabs the closest representative color to current color and returns
     def closestColor(self,colors,color):
@@ -259,14 +262,37 @@ class Colorizer():
         temp = smallest_distance[0]
         return temp
 
+    def lossFunctionDerivative(self, softMax, encoding):
+        loss = 0
+        for i in range(5):
+            # print(i, encoding[i], softMax[0][i])
+            loss += ((encoding[i]) * (softMax[0][i]))
+        # print(loss)
+        return loss - 1
+
+    def lossFunction(self, softMax, encoding):
+        loss = 0
+        softMaxLog = np.log(softMax)
+        # print(softMax)
+        for i in range(5):
+            print(i, encoding[i], softMax[0][i])
+            loss += ((-1*encoding[i]) * (softMaxLog[0][i]))
+        print("Loss: ", loss)
+        return self.lossFunctionDerivative(softMax, encoding)
+
     # trains the model
     def training(self, inputData):
         count = 0
         for i in inputData.values():
-            if count == 1:
+            print("This is input data: ", i)
+            if count == 20:
                 break
-            self.softmax(i[0])
+            softMax = self.softmax(i[0])
             count = count + 1
+            self.weights -= self.alpha * self.lossFunction(softMax, i[1])
+            # print("Weights: ", self.weights)
+
+        
         
 if __name__ == '__main__':
     imageColorizer = Colorizer()
