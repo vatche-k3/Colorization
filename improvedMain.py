@@ -265,12 +265,17 @@ class Colorizer():
         return temp
 
     def lossFunctionDerivative(self, softMax, encoding):
-        loss = 0
-        for i in range(5):
-            # print(i, encoding[i], softMax[0][i])
-            loss += ((encoding[i]) * (softMax[0][i]))
-        print("derivative:", loss - 1)
-        return loss - 1
+        # loss = 0
+
+        array = np.subtract(softMax, encoding) 
+        print("SoftMax: ", softMax, "and encoding: ", encoding)
+        print("Subtracted Array: ", array[0])
+        
+        # for i in range(5):
+        #     # print(i, encoding[i], softMax[0][i])
+        #     loss += ((encoding[i]) * (softMax[0][i]))
+        # print("derivative:", loss - 1)
+        return list(array)
 
     def lossFunction(self, softMax, encoding):
         loss = 0
@@ -286,15 +291,66 @@ class Colorizer():
     def training(self, inputData):
         count = 0
         for i in inputData.values():
-            if count == 500:
+            if count == 100:
                 break
             softMax = self.softmax(i[0])
             count = count + 1
-            self.weights -= self.alpha * self.lossFunction(softMax, i[1])
+            lossArray = self.lossFunction(softMax, i[1])
+            x = [k/255 for k in i[0]]
+            
+            for j in range(5):
+                array = np.zeros(9)
+                # print(lossArray[0][j], type(lossArray[0][j]))
+                # print(x, type(x))
+                for l in range(len(x)):
+                    array[l] = lossArray[0][j] * x[l] 
+                
+                array *= self.alpha
+                print("lossArray, x : ", lossArray[0], x)
+                print("Array: ", array)
+                self.weights[j] -= array
+            # self.weights -= self.alpha * self.lossFunction(softMax, i[1])
             # print("Weights: ", self.weights)
 
+    def colorImprovedAgent(self, domColors):
         
+        imageRep = Image.open("improvedRep.png")
+        image_rgb_rep = imageRep.convert("RGB")
+        finalImageData = np.array(imageRep)
+        width, height = imageRep.size
+        # finalImageData = np.zeros((height, width, 3), dtype=np.uint8)
+        imageGray = Image.open("improvedGrayScale.png")
+        # finalImageData = np.array(imageGray)
         
+        # Get width of second half of the image
+        half = (int)(width/2)
+        # print(half, width, height)
+        
+
+        
+        for i in range(half, width):
+            for j in range(height):
+                patch = self.getSurroundingGrid(i, j, imageGray, 0)
+                print("This is the patch: ", patch)
+                softMax = self.softmax(patch)
+                max = 0
+                maxIndex = 0
+                for k in range(len(softMax[0])):
+                    # print(softMax[0][k])
+                    if softMax[0][k] > max:
+                        max = softMax[0][k]
+                        maxIndex = k
+                
+                color = domColors[maxIndex]
+                print("MaxIndex: ", maxIndex, "and color: ", color)
+                print("SoftMax: ", softMax)
+                finalImageData[j][i] = color
+                finalImage = Image.fromarray(finalImageData)
+                finalImage.save('improvedImage.png')
+
+        finalImage.save('improvedImage.png')
+        finalImage.show()
+
 if __name__ == '__main__':
     imageColorizer = Colorizer()
     grayscale_image = imageColorizer.create_grayscale_image()
@@ -307,3 +363,5 @@ if __name__ == '__main__':
     # print("input:")
     # print(inputData)
     imageColorizer.training(inputData)
+    
+    imageColorizer.colorImprovedAgent(domColors)
