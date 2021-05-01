@@ -229,15 +229,17 @@ class Colorizer():
         return weights;
     # Performs the softmax function
     def softmax(self, x):
-        print("here", x)
         logits = np.zeros((1,5))
 
         # take dot product of each weight vector compared to x and store in logit vector
         logitIndex = 0
+        print("this is x", x)
+        x = [i/255 for i in x]
+        print("this is x", x)
         print("this is weights in softmax", self.weights)
         for i in self.weights:
             # print("weights i", i)
-            logits[0][logitIndex] = np.dot(x, i, out = None)
+            logits[0][logitIndex] = np.dot(x, i)
             # print("check", logits[0][logitIndex])
             logitIndex = logitIndex + 1
         print("here", logits)
@@ -267,7 +269,7 @@ class Colorizer():
         for i in range(5):
             # print(i, encoding[i], softMax[0][i])
             loss += ((encoding[i]) * (softMax[0][i]))
-        # print(loss)
+        print("derivative:", loss - 1)
         return loss - 1
 
     def lossFunction(self, softMax, encoding):
@@ -284,8 +286,7 @@ class Colorizer():
     def training(self, inputData):
         count = 0
         for i in inputData.values():
-            print("This is input data: ", i)
-            if count == 20:
+            if count == 500:
                 break
             softMax = self.softmax(i[0])
             count = count + 1
