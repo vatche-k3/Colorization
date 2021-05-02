@@ -312,6 +312,7 @@ class Colorizer():
             # self.weights -= self.alpha * self.lossFunction(softMax, i[1])
             # print("Weights: ", self.weights)
 
+    # colors the image
     def colorImprovedAgent(self, domColors):
         
         imageRep = Image.open("improvedRep.png")
