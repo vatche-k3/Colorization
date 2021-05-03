@@ -64,32 +64,6 @@ class Colorizer():
         
         # Convert colors to int and return
         return self.COLORS.astype(int)
-    
-    def checkSimilarity(self, leftSidePatch, rightSidePatch, topSix, j, k):
-        # print(leftSidePatch)
-        # print(rightSidePatch)
-        n = 0.0
-        # Euclidian distance of left and right patches
-        for x, y in zip(rightSidePatch, leftSidePatch):
-            for x2, y2 in zip(x, y):
-                # print(x2, y2)
-                n += norm(np.array(x2) - np.array(y2))
-                # print("This is n: ", n)
-
-        
-
-        # Add value to the array
-        
-        topSix.append((n, (j, k)))
-        # print("TopSix before add and delete: ", topSix)
-        if len(topSix) > 6:
-            topSix.sort(reverse = True)
-            del topSix[0]
-        # print("TopSix after add: ", topSix)
-        # print(topSix)
-            
-
-        return topSix
 
 
     def getSurroundingGrid(self, i, j, image, check):
@@ -97,14 +71,11 @@ class Colorizer():
         array = np.zeros((9), dtype=list)
         image_rgb = image.convert("RGB")
         # All possible surroinding pixels
-        # coordinates = [(j-1,i-1),(j,i-1),(j+1,i-1),(j-1,i),(j,i),(j+1,i),(j-1,i+1),(j,i+1),(j+1,i+1)]
         coordinates = [(i-1,j-1),(i,j-1),(i+1,j-1),(i-1,j),(i,j),(i+1,j),(i-1,j+1),(i,j+1),(i+1,j+1)]
         c = 0
         for x in range(9):
             # Set pixel as black if it does not have 9 surrounding pixels, i.e. a border
-            # print(coordinates[c])
             if(coordinates[c][1] < 0 or coordinates[c][0] >= image.width or coordinates[c][1] >= image.height):
-                # print("here1")
                 array[x] = 0
             elif check == 0 and coordinates[c][0] < image.width/2:
                 array[x] = 0
@@ -112,60 +83,16 @@ class Colorizer():
                 array[x] = 0
             else:
                 # Get the rgb value of all the surrounding pixels
-                # print("here2")
-                # print(image.size)
                 temp = image_rgb.getpixel(coordinates[c])
                 array[x] = temp[0]
             c=c+1
-
         return array
-
-    def predictImageColor(self, topSix, image_rgb, domColors, finalImageData, coor):
-        height = 0
-        width = 0
-        pixelColors = [0,0,0,0,0]
-        for i in topSix:
-            width = i[1][0]
-            height = i[1][1]
-            rgb_pixel_value = image_rgb.getpixel((width,height))
-            # print("RGB: ", rgb_pixel_value, i)
-            for j in range(len(domColors)):
-                # print(domColors[j])
-                if (np.array(domColors[j]) == np.array(rgb_pixel_value)).all():
-                    # print("They are equal")
-                    pixelColors[j] += 1
-                    break
-        
-        max = 0
-        maxIndex = 0
-        for i in range(len(pixelColors)):
-            if pixelColors[i] > max:
-                max = pixelColors[i]
-                maxIndex = i
-
-        # Check for ties
-        count = 0
-        for i in range(len(pixelColors)):
-            if max == pixelColors[i]:
-                count += 1
-        
-        if count > 1:
-            rgb_pixel_value = image_rgb.getpixel((width,height))
-            finalImageData[coor[1]][coor[0]] = self.closestColor(domColors, rgb_pixel_value)    
-        else:
-            finalImageData[coor[1]][coor[0]] = domColors[maxIndex]
-            # finalImageData[coor[1]][coor[0]] = [0, 0, 0]
-        
-
-        
-        # print(pixelColors)
-        # print(domColors[maxIndex], (coor[1],coor[0]))
-        
-        return finalImageData
     
+    # returns the one hot encoding of a given index
     def oneHotEncoding(self, index):
         return np.array([int(i == index) for i in range(5)])
     
+    # Get all the black and white vectors and their one hot encodings
     def getVectorX(self, domColors):
         imageGray = Image.open("improvedGrayScale.png")
         image_rgb_gray = imageGray.convert("RGB")
@@ -185,20 +112,12 @@ class Colorizer():
             for j in range(height):
                 patch = self.getSurroundingGrid(i, j, imageGray, 1)
                 colorValue = image_rgb_rep.getpixel((i,j))
-                # print(len(domColors))
                 for k in range(len(domColors)):
-                    # print(domColors[j])
-                    # print(domColors[k], colorValue)
                     if (np.array(domColors[k]) == np.array(colorValue)).all():
-                        # print("They are equal")
                         indexValue = k
                         encoding = self.oneHotEncoding(indexValue)
                         break   
                 leftSide[(i,j)] = (list(patch), list(encoding)) 
-        
-        # print(leftSide)
-        # print("The end")
-        # print("--- %s seconds ---" % (time.time() - start_time))
         return leftSide
     
     # Function creates a new image out of the five dominant colors
@@ -226,32 +145,24 @@ class Colorizer():
             for j in range(9):
                 p = np.random.uniform(-0.5,0.5)
                 weights[i][j] = p
-        return weights;
+        return weights
+
     # Performs the softmax function
     def softmax(self, x):
         logits = np.zeros((1,5))
 
         # take dot product of each weight vector compared to x and store in logit vector
         logitIndex = 0
-        print("this is x", x)
+
         x = [i/255 for i in x]
-        print("this is x", x)
-        print("this is weights in softmax", self.weights)
+
         for i in self.weights:
-            # print("weights i", i)
             logits[0][logitIndex] = np.dot(x, i)
-            # print("check", logits[0][logitIndex])
             logitIndex = logitIndex + 1
-        print("here", logits)
 
         exps = [np.exp(i) for i in logits]
-        print("exps", exps)
         sum_of_exps = np.sum(exps)
-        print("sum of exps", sum_of_exps)
         softmax = [j/sum_of_exps for j in exps]    
-        # print("Softmax", softmax) 
-        # maxProb = np.max(softmax)
-        # print("maxProb", maxProb)
         return softmax
 
     # Grabs the closest representative color to current color and returns
@@ -264,27 +175,17 @@ class Colorizer():
         temp = smallest_distance[0]
         return temp
 
+    # compute the derivative of the loss function
     def lossFunctionDerivative(self, softMax, encoding):
-        # loss = 0
-
         array = np.subtract(softMax, encoding) 
-        print("SoftMax: ", softMax, "and encoding: ", encoding)
-        print("Subtracted Array: ", array[0])
-        
-        # for i in range(5):
-        #     # print(i, encoding[i], softMax[0][i])
-        #     loss += ((encoding[i]) * (softMax[0][i]))
-        # print("derivative:", loss - 1)
         return list(array)
 
+    # compute the loss function
     def lossFunction(self, softMax, encoding):
         loss = 0
         softMaxLog = np.log(softMax)
-        # print(softMax)
         for i in range(5):
-            print(i, encoding[i], softMax[0][i])
             loss += ((-1*encoding[i]) * (softMaxLog[0][i]))
-        print("Loss: ", loss)
         return self.lossFunctionDerivative(softMax, encoding)
 
     # trains the model
@@ -300,17 +201,11 @@ class Colorizer():
             
             for j in range(5):
                 array = np.zeros(9)
-                # print(lossArray[0][j], type(lossArray[0][j]))
-                # print(x, type(x))
                 for l in range(len(x)):
                     array[l] = lossArray[0][j] * x[l] 
                 
                 array *= self.alpha
-                print("lossArray, x : ", lossArray[0], x)
-                print("Array: ", array)
                 self.weights[j] -= array
-            # self.weights -= self.alpha * self.lossFunction(softMax, i[1])
-            # print("Weights: ", self.weights)
 
     # colors the image
     def colorImprovedAgent(self, domColors):
@@ -319,32 +214,23 @@ class Colorizer():
         image_rgb_rep = imageRep.convert("RGB")
         finalImageData = np.array(imageRep)
         width, height = imageRep.size
-        # finalImageData = np.zeros((height, width, 3), dtype=np.uint8)
         imageGray = Image.open("improvedGrayScale.png")
-        # finalImageData = np.array(imageGray)
         
         # Get width of second half of the image
         half = (int)(width/2)
-        # print(half, width, height)
-        
 
-        
         for i in range(half, width):
             for j in range(height):
                 patch = self.getSurroundingGrid(i, j, imageGray, 0)
-                print("This is the patch: ", patch)
                 softMax = self.softmax(patch)
                 max = 0
                 maxIndex = 0
                 for k in range(len(softMax[0])):
-                    # print(softMax[0][k])
                     if softMax[0][k] > max:
                         max = softMax[0][k]
                         maxIndex = k
                 
                 color = domColors[maxIndex]
-                print("MaxIndex: ", maxIndex, "and color: ", color)
-                print("SoftMax: ", softMax)
                 finalImageData[j][i] = color
                 finalImage = Image.fromarray(finalImageData)
                 finalImage.save('improvedImage.png')
@@ -357,12 +243,11 @@ if __name__ == '__main__':
     grayscale_image = imageColorizer.create_grayscale_image()
     # grayscale_image.show()
     domColors = imageColorizer.getDominantColors()
-    print(domColors)
+
     testImage = imageColorizer.create_representative_image(domColors)
     # testImage.show()
     inputData = imageColorizer.getVectorX(domColors)
-    # print("input:")
-    # print(inputData)
+
     imageColorizer.training(inputData)
     
     imageColorizer.colorImprovedAgent(domColors)

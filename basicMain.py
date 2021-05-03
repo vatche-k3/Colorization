@@ -135,8 +135,6 @@ class Colorizer():
         else:
             finalImageData[coor[1]][coor[0]] = domColors[maxIndex]
 
-        print(pixelColors)
-        print(domColors[maxIndex], (coor[1],coor[0]))
         return finalImageData
     
     def getSixPatches(self, domColors):
